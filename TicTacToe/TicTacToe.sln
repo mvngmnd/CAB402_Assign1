@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2036
+VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GameTheory", "GameTheory\GameTheory.fsproj", "{29B14DCF-CECA-4A17-B7F1-7E747B875818}"
 EndProject
@@ -21,7 +21,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicTacToeWPF", "TicTacToeWP
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpTicTacToeModels", "CSharpTicTacToeModels\CSharpTicTacToeModels.csproj", "{16BCF479-B7F4-4D85-80AA-9C69B258718E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeCounter", "NodeCounter\NodeCounter.csproj", "{A203EC37-BC4B-499D-B056-D4A209A65371}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeCounter", "NodeCounter\NodeCounter.csproj", "{A203EC37-BC4B-499D-B056-D4A209A65371}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

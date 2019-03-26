@@ -3,10 +3,23 @@ namespace QUT
     module GameTheory =
 
         let MiniMaxGenerator (heuristic:'Game -> 'Player -> int) (getTurn: 'Game -> 'Player) (gameOver:'Game->bool) (moveGenerator: 'Game->seq<'Move>) (applyMove: 'Game -> 'Move -> 'Game) : 'Game -> 'Player -> Option<'Move> * int =
-            // Basic MiniMax algorithm without using alpha beta pruning
+
             let rec MiniMax game perspective =
                 NodeCounter.Increment()
-                raise (System.NotImplementedException("MiniMax"))
+
+                if (gameOver game) then
+                    (None, heuristic game perspective)
+                else
+                    //The set of all possible moves for our current state
+                    let moves = seq{for move in moveGenerator game do
+                                    let newState = applyMove game move
+                                    yield MiniMax newState (getTurn newState)
+                                   }
+
+                    if (perspective = getTurn game) then
+                        Seq.reduce(fun (x:(Option<'Move>*int)) (y:(Option<'Move>*int)) -> if (snd x > snd y) then y else x) moves
+                    else
+                        Seq.reduce(fun (x:(Option<'Move>*int)) (y:(Option<'Move>*int)) -> if (snd x < snd y) then y else x) moves
             NodeCounter.Reset()
             MiniMax
 

@@ -7,19 +7,43 @@ namespace QUT
             let rec MiniMax game perspective =
                 NodeCounter.Increment()
 
-                if (gameOver game) then
-                    (None, heuristic game perspective)
-                else
-                    //The set of all possible moves for our current state
-                    let moves = seq{for move in moveGenerator game do
-                                    let newState = applyMove game move
-                                    yield MiniMax newState (getTurn newState)
-                                   }
+                let moves = 
+                    seq{for move in moveGenerator game do yield move}
 
-                    if (perspective = getTurn game) then
-                        Seq.reduce(fun (x:(Option<'Move>*int)) (y:(Option<'Move>*int)) -> if (snd x > snd y) then y else x) moves
+                if (gameOver game || Seq.isEmpty moves) then
+                    (None, heuristic game perspective)
+
+                else
+
+                let appliedMoves = 
+                    seq{for move in moves do 
+                            yield MiniMax (applyMove game move) perspective}
+
+                let zippedMoves = Seq.zip moves appliedMoves
+
+                let max = getTurn game = perspective
+
+                let comp (x:'Move * ('a option * int)) (y:'Move * ('a option * int)) (max:bool) = 
+                    let xheuristic = snd(snd(x))
+                    let yheuristic = snd(snd(x))
+                    let xmove = fst(x)
+                    let ymove = fst(y)
+
+                    if (max) then
+                        if (xheuristic >= yheuristic) then
+                            (xmove, (Some xmove, xheuristic))
+                        else
+                            (ymove, (Some xmove, yheuristic))
                     else
-                        Seq.reduce(fun (x:(Option<'Move>*int)) (y:(Option<'Move>*int)) -> if (snd x < snd y) then y else x) moves
+                        if (xheuristic < yheuristic) then
+                            (xmove, (Some ymove, xheuristic ))
+                        else
+                            (ymove, (Some ymove, yheuristic))
+                        
+
+                let best = Seq.reduce (fun x y -> comp x y max) zippedMoves
+                (Some (fst(best)), snd(snd(best)))
+
             NodeCounter.Reset()
             MiniMax
 

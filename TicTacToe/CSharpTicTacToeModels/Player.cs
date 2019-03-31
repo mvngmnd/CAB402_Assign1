@@ -2,7 +2,7 @@
 {
     public enum Player
     {
-        Nought,
-        Cross
+        Nought = 1,
+        Cross = 2
     }
 }

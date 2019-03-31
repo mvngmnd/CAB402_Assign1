@@ -1,8 +1,8 @@
 namespace QUT
 
     module FSharpPureTicTacToeModel =
-        
-        type Player = Nought | Cross
+
+        type Player = Nothing | Nought | Cross
 
         type Move = 
             {
@@ -37,14 +37,14 @@ namespace QUT
              }
 
         let ApplyMove (oldState:GameState) (move: Move) = 
-            let newBoard = oldState.GameBoard.Add((move.Column, move.Row), oldState.GameTurn)
+            let newBoard = oldState.GameBoard.Add((move.Row, move.Column), oldState.GameTurn)
             let newPlayer = 
                 match oldState.GameTurn with
                 | Player.Cross -> Player.Nought
                 | Player.Nought -> Player.Cross
+                |_ -> oldState.GameTurn
             {GameSize = oldState.GameSize; GameBoard = newBoard; GameTurn = newPlayer}
-
-
+           
         let Lines (size:int) : seq<seq<int*int>> = 
             let Rows : seq<seq<int*int>> = 
                 seq {for x in 0 .. size-1 do
@@ -59,54 +59,70 @@ namespace QUT
                 let right = seq{yield seq {for x in 0 .. size-1 do yield (x, size-1 - (x%size))}}
                 Seq.append left right
             Seq.append (Seq.append Rows Columns) Diagonals
-            
-        // Checks a single line (specified as a sequence of (row,column) coordinates) to determine if one of the players
-        // has won by filling all of those squares, or a Draw if the line contains at least one Nought and one Cross
+
+        let lineAsPlayers (game:GameState) (line:seq<int*int>) = 
+                seq{for coords in line do
+                     if (game.GameBoard.ContainsKey(coords)) then
+                        yield game.GameBoard.Item(coords) else yield Nothing}
+                       
         let CheckLine (game:GameState) (line:seq<int*int>) : TicTacToeOutcome<Player> =
-            let playersAsLine = seq{for coords in line do if game.GameBoard.ContainsKey(coords) then yield game.GameBoard.Item(coords)}
+            let lineObj = lineAsPlayers game line
 
-            let seqFull = Seq.length playersAsLine = game.GameSize
+            let sumPlayer (player:Player) = 
+                Seq.fold(fun acc elem -> if elem = player then acc+1 else acc) 0 lineObj
 
-            if (not(Seq.isEmpty playersAsLine)) then
-                let crossExists = Seq.exists(fun x -> x = Cross) playersAsLine
-                let noughtExists = Seq.exists(fun x -> x = Nought) playersAsLine
-                if (crossExists && noughtExists) then
-                    Draw
-                else if (crossExists && not(noughtExists) && seqFull) then
-                    Win(Cross, line)
-                else if (noughtExists && not(crossExists) && seqFull) then
-                    Win(Nought, line)
-                else
-                    Undecided
+            if (sumPlayer(Nought) > 0 && sumPlayer(Cross) > 0) then
+                Draw
+            else if (sumPlayer(Nought) = game.GameSize) then
+                Win(Nought, line)
+            else if (sumPlayer(Cross) = game.GameSize) then
+                Win(Cross, line)
             else
                 Undecided
 
-
         let GameOutcome (game:GameState) : TicTacToeOutcome<Player> =
+            let winningLines = Lines(game.GameSize)
+            let gameOutcomes = seq{for line in winningLines do yield CheckLine game line}
 
-            let allLines = Lines game.GameSize
-            let finished = Seq.length allLines = game.GameSize
-
-            let results = seq{
-                for line in allLines do
-                    yield CheckLine game line
-            }
-
-            match (Seq.exists (fun x -> match x with
-                                         | Win(_,_) -> true
-                                         |_ -> false) results) with
-                   | true -> Seq.find (fun x -> match x with
-                                                      | Win(_,_) -> true
-                                                      |_ -> false) results
-                   | false -> match finished with
-                                    | true -> Draw
-                                    |_ -> Undecided
+            if (Seq.forall(fun elem -> elem = Draw) gameOutcomes) then
+                Draw
+            else if (Seq.forall(fun elem -> elem = Draw || elem = Undecided) gameOutcomes) then
+                Undecided
+            else
+                Seq.find(fun elem -> elem <> Draw && elem <> Undecided) gameOutcomes
  
+        let GameStart (firstPlayer:Player) (size:int) = {GameTurn = firstPlayer; GameSize = size; GameBoard = Map.empty<int*int, Player>}
 
-        let GameStart (firstPlayer:Player) (size:int) = 
-                   {GameTurn = firstPlayer; GameSize = size; GameBoard = Map.empty<int*int, Player>}
+        let TicTacToeHeuristic (game: GameState) (player:Player) =
+            let outcome = GameOutcome game
+            match outcome with
+            | Win(x,_) -> if (x=player) then 1 else -1
+            |_ -> 0
 
-        let MiniMax (game: GameState) = raise (System.NotImplementedException("MiniMax"))
+        let TicTacToeMoveGenerator (game:GameState) =
+            let allPossibleMoves = seq{for x in 0 .. game.GameSize do for y in 0 .. game.GameSize-1 do yield (x,y)}
+            Seq.filter(fun x -> not (game.GameBoard.ContainsKey(x))) allPossibleMoves
+
+        let TicTacToeGetTurn (game:GameState) = game.GameTurn
+
+        let TicTacToeGameOver (game:GameState) = 
+            match GameOutcome game with
+            | Draw -> true
+            | Win (_,_) -> true
+            |_ -> false
+
+        let TicTacToeApplyMove game (move:(int*int)) =
+            ApplyMove game (CreateMove (fst(move)) (snd(move)))
+
+        let MiniMax (game:GameState) = 
+            GameTheory.MiniMaxGenerator 
+                 TicTacToeHeuristic
+                 TicTacToeGetTurn
+                 TicTacToeGameOver
+                 TicTacToeMoveGenerator
+                 TicTacToeApplyMove
+                 game
+                 game.GameTurn
 
         let MiniMaxWithPruning game = raise (System.NotImplementedException("MiniMaxWithPruning"))
 
@@ -125,7 +141,10 @@ namespace QUT
         type BasicMiniMax() =
             inherit Model()
             override this.ToString()         = "Pure F# with basic MiniMax";
-            override this.FindBestMove(game) = raise (System.NotImplementedException("FindBestMove"))
+            override this.FindBestMove(game) = 
+                let coords = fst(MiniMax game).Value
+                CreateMove (fst(coords)) (snd(coords))
+                
 
         type WithAlphaBetaPruning() =
             inherit Model()

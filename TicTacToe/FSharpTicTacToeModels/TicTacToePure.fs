@@ -1,4 +1,4 @@
-namespace QUT
+ namespace QUT
 
     module FSharpPureTicTacToeModel =
 
@@ -27,6 +27,7 @@ namespace QUT
                         match this.GameBoard.Item(row,col) with
                         | Player.Cross -> "X"
                         | Player.Nought -> "O"
+                        |_ -> ""
                     else
                         ""
 
@@ -44,16 +45,15 @@ namespace QUT
                 | Player.Nought -> Player.Cross
                 |_ -> oldState.GameTurn
             {GameSize = oldState.GameSize; GameBoard = newBoard; GameTurn = newPlayer}
-           
+
         let Lines (size:int) : seq<seq<int*int>> = 
+
+            //Try and have seq.append??
+
             let Rows : seq<seq<int*int>> = 
-                seq {for x in 0 .. size-1 do
-                        yield seq{for y in 0 .. size-1 do yield (x,y)}
-                }
+                seq {for x in 0 .. size-1 do yield seq{for y in 0 .. size-1 do yield (x,y)}}
             let Columns : seq<seq<int*int>> = 
-                seq {for y in 0 .. size-1 do
-                        yield seq{for x in 0 .. size-1 do yield (x,y)}
-                }
+                seq {for y in 0 .. size-1 do yield seq{for x in 0 .. size-1 do yield (x,y)}}
             let Diagonals =
                 let left = seq{yield seq {for x in 0 .. size-1 do yield (x,x)}}
                 let right = seq{yield seq {for x in 0 .. size-1 do yield (x, size-1 - (x%size))}}
@@ -70,7 +70,7 @@ namespace QUT
 
             let sumPlayer (player:Player) = 
                 Seq.fold(fun acc elem -> if elem = player then acc+1 else acc) 0 lineObj
-
+             
             if (sumPlayer(Nought) > 0 && sumPlayer(Cross) > 0) then
                 Draw
             else if (sumPlayer(Nought) = game.GameSize) then
@@ -100,8 +100,9 @@ namespace QUT
             |_ -> 0
 
         let TicTacToeMoveGenerator (game:GameState) =
-            let allPossibleMoves = seq{for x in 0 .. game.GameSize do for y in 0 .. game.GameSize-1 do yield (x,y)}
-            Seq.filter(fun x -> not (game.GameBoard.ContainsKey(x))) allPossibleMoves
+            let allPossibleMoves = seq{for x in 0 .. game.GameSize-1 do for y in 0 .. game.GameSize-1 do yield (x,y)}
+            let moves = Seq.filter(fun x -> not(game.GameBoard.ContainsKey(x))) allPossibleMoves
+            moves
 
         let TicTacToeGetTurn (game:GameState) = game.GameTurn
 
@@ -141,7 +142,7 @@ namespace QUT
         type BasicMiniMax() =
             inherit Model()
             override this.ToString()         = "Pure F# with basic MiniMax";
-            override this.FindBestMove(game) = 
+            override this.FindBestMove(game) =
                 let coords = fst(MiniMax game).Value
                 CreateMove (fst(coords)) (snd(coords))
                 

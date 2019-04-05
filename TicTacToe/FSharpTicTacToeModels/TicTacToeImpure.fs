@@ -1,38 +1,52 @@
 namespace QUT
 
     module FSharpImpureTicTacToeModel =
-    
-        type Player = Something (* implement type *)
 
-        type GameState = 
-            { something: int (* implement type *) } 
-            interface ITicTacToeGame<Player> with
-                member this.Turn with get()    = raise (System.NotImplementedException("getTurn"))
-                member this.Size with get()    = raise (System.NotImplementedException("getSize"))
-                member this.getPiece(row, col) = raise (System.NotImplementedException("getPiece"))
+        type Player = Nothing | Nought | Cross
 
         type Move = 
-            { something: int (* implement type *) }
+            {
+                Row: int;
+                Col: int;
+            }
             interface ITicTacToeMove with
-                member this.Row with get() = raise (System.NotImplementedException("getRow"))
-                member this.Col with get() = raise (System.NotImplementedException("getCol"))
+                member this.Row with get() = this.Row
+                member this.Col with get() = this.Col
 
+        type GameState = 
+            {
+                mutable GameTurn: Player;
+                GameSize: int;
+                mutable GameBoard: Player array;
+            } 
+            interface ITicTacToeGame<Player> with
+                member this.Turn with get()    = this.GameTurn
+                member this.Size with get()    = this.GameSize
+                member this.getPiece(row, col) = 
+                    match this.GameBoard.[col + (row * this.GameSize)] with
+                    | Player.Cross -> "X"
+                    | Player.Nought -> "O"
+                    |_ -> ""
 
+        let CreateMove row col   = 
+            {Row = row; Col = col;}
+
+        let ApplyMove game move = 
+            game.GameBoard.SetValue(move, move.Col + (move.Row * (game.GameSize)))
+
+            game.GameTurn <- match game.GameTurn with
+                             | Cross -> Nought
+                             | Nought -> Cross
+                             |_ -> game.GameTurn
+
+            game
+
+        let GameStart first size = 
+            {GameSize = size; GameTurn = first; GameBoard = Array.empty<Player>;}
 
         let GameOutcome game     = raise (System.NotImplementedException("GameOutcome"))
 
-        let ApplyMove game move  = raise (System.NotImplementedException("ApplyMove"))
-
-        let CreateMove row col   = raise (System.NotImplementedException("CreateMove"))
-
         let FindBestMove game    = raise (System.NotImplementedException("FindBestMove"))
-
-        let GameStart first size = raise (System.NotImplementedException("GameStart"))
-
-        // plus other helper functions ...
-
-
-
 
         type WithAlphaBetaPruning() =
             override this.ToString()         = "Impure F# with Alpha Beta Pruning";
@@ -42,5 +56,5 @@ namespace QUT
                 member this.GameStart(firstPlayer, size) = GameStart firstPlayer size
                 member this.CreateMove(row, col)         = CreateMove row col
                 member this.GameOutcome(game)            = GameOutcome game 
-                member this.ApplyMove(game, move)        = ApplyMove game  move
+                member this.ApplyMove(game, move)        = ApplyMove game move
                 member this.FindBestMove(game)           = FindBestMove game

@@ -1,7 +1,5 @@
 namespace QUT
 
-    //generate the scores as a single list, then just do an index thing, using maxby snd thing
-
     module GameTheory =
 
         let MiniMaxGenerator (heuristic:'Game -> 'Player -> int) (getTurn: 'Game -> 'Player) (gameOver:'Game->bool) (moveGenerator: 'Game->seq<'Move>) (applyMove: 'Game -> 'Move -> 'Game) : 'Game -> 'Player -> Option<'Move> * int =
@@ -12,7 +10,6 @@ namespace QUT
                 if (gameOver game) then
                     (None, heuristic game perspective)
                 else
-
                     let bestScore = moveGenerator game
                                     |> Seq.map (fun move -> snd(MiniMax (applyMove game move) perspective))
                                     |> Seq.toList
@@ -25,21 +22,70 @@ namespace QUT
             MiniMax
 
         let MiniMaxWithAlphaBetaPruningGenerator (heuristic:'Game -> 'Player -> int) (getTurn: 'Game -> 'Player) (gameOver:'Game->bool) (moveGenerator: 'Game->seq<'Move>) (applyMove: 'Game -> 'Move -> 'Game) : int -> int -> 'Game -> 'Player -> Option<'Move> * int =
-            // Optimized MiniMax algorithm that uses alpha beta pruning to eliminate parts of the search tree that don't need to be explored            
             let rec MiniMax alpha beta oldState perspective =
                 NodeCounter.Increment()
 
-                //alpha beta could possibly seperate calls of the the function?
+                let rec takeMax children row alpha beta =
+                    let head = List.head children
+                    let headGame = snd(head)
 
-                //old state seems to suggest something
+                    let v = MiniMax alpha beta headGame perspective
 
-                //alpha could be an implementation that does a return
-                //straight away if its less than its parent?
+                    let newRow = row @ [(fst(head), v)]
+                    let new_a = max alpha (snd(v))
+
+                    if (new_a >= beta || children.Length = 1) then
+                        if (children.Length = 1) then
+                            if (row.IsEmpty) then
+                                (Some(fst(head)), snd(v))
+                            else
+                            let ints = List.map (fun x -> snd(snd(x))) newRow
+                            let maxInt = List.max ints
+                            let index = List.findIndex (fun x -> snd(snd(x)) = maxInt) newRow
+                            let i = List.item index newRow
+                            (Some(fst(i)), maxInt)
+                        else
+                            (Some(fst(head)), snd(v))
+                    else
+                        takeMax (List.tail children) newRow new_a beta 
+
+                let rec takeMin children row alpha beta = 
+                    let head = List.head children
+                    let headGame = snd(head)
+
+                    let v = MiniMax alpha beta headGame perspective
+                    let newRow = row @ [(fst(head), v)]
+                    let new_b = min beta (snd(v))
+
+                    if (new_b <= alpha || children.Length = 1) then
+                        if (children.Length = 1) then
+                            if (row.IsEmpty) then
+                                (Some(fst(head)), snd(v))
+                            else
+
+                            let ints = List.map (fun x -> snd(snd(x))) newRow
+                            let minInt = List.min ints
+                            let index = List.findIndex (fun x -> snd(snd(x)) = minInt) newRow
+                            let i = List.item index newRow
+                            (Some(fst(i)), minInt)
+                        else
+                            (Some(fst(head)), snd(v))
+                    else
+                        takeMin (List.tail children) newRow alpha new_b 
 
                 if (gameOver oldState) then
                     (None, heuristic oldState perspective)
                 else
-                    (None, heuristic oldState perspective)
-
+                    let bestMove = 
+                        moveGenerator oldState
+                        |> Seq.map (fun move -> applyMove oldState move)
+                        |> Seq.toList
+                        |> List.zip (Seq.toList(moveGenerator oldState))
+                        |> (fun x -> 
+                                if getTurn oldState = perspective then
+                                    takeMax x List.Empty alpha beta
+                                else
+                                    takeMin x List.Empty alpha beta)
+                    bestMove
             NodeCounter.Reset()
             MiniMax

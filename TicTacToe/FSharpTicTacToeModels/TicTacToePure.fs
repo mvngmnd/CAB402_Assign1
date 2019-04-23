@@ -50,23 +50,22 @@
             |> Seq.append (seq{yield seq {for x in 0 .. size-1 do yield (x, size-1 - (x%size))}})        // Right diagonal     
 
         let CheckLine (game:GameState) (line:seq<int*int>) : TicTacToeOutcome<Player> =
-            // Turn the line into a seq of players
-            let lineObj = seq{for coords in line do if (game.GameBoard.ContainsKey(coords)) then yield game.GameBoard.Item(coords)}       
+            let countPlayer player = Seq.fold(fun n elem -> if elem = player then n+1 else n) 0          // Count quantity of player type
+                                            (seq{for coords in line do                                   // Line as a sequence of players
+                                                    if (game.GameBoard.ContainsKey(coords)) then 
+                                                        yield game.GameBoard.Item(coords)}) 
 
-            let sumPlayer (player:Player) = 
-                Seq.fold(fun n elem -> if elem = player then n+1 else n) 0 lineObj
-             
-            if (sumPlayer(Nought) > 0 && sumPlayer(Cross) > 0) then
+            if (countPlayer(Nought) > 0 && countPlayer(Cross) > 0) then
                 Draw
-            else if (sumPlayer(Nought) = game.GameSize) then
+            else if (countPlayer(Nought) = game.GameSize) then
                 Win(Nought, line)
-            else if (sumPlayer(Cross) = game.GameSize) then
+            else if (countPlayer(Cross) = game.GameSize) then
                 Win(Cross, line)
             else
                 Undecided
 
         let GameOutcome (game:GameState) : TicTacToeOutcome<Player> =
-            let gameOutcomes = seq{for line in Lines(game.GameSize) do yield CheckLine game line}
+            let gameOutcomes = Seq.map(fun line -> CheckLine game line) (Lines(game.GameSize))
 
             // If all line results are draw, then its a draw.
             if (Seq.forall(fun elem -> elem = Draw) gameOutcomes) then                          
@@ -87,8 +86,9 @@
             |_ -> 0
 
         let TicTacToeMoveGenerator game =
-            Seq.filter(fun x -> not(game.GameBoard.ContainsKey(x)))                                  // Create a sequence of moves not found in map
-                (seq{for x in 0 .. game.GameSize-1 do for y in 0 .. game.GameSize-1 do yield (x,y)}) // Given all the moves possible
+            Seq.filter(fun x -> not(game.GameBoard.ContainsKey(x)))  // Create a sequence of moves not in map
+                (seq{for x in 0 .. game.GameSize-1 do 
+                      for y in 0 .. game.GameSize-1 do yield (x,y)}) // Given all the moves possible
 
         let TicTacToeGetTurn game =
             game.GameTurn
@@ -111,7 +111,17 @@
                  game
                  game.GameTurn
 
-        let MiniMaxWithPruning game = raise (System.NotImplementedException("MiniMaxWithPruning"))
+        let MiniMaxWithPruning (game:GameState) = 
+            GameTheory.MiniMaxWithAlphaBetaPruningGenerator
+                TicTacToeHeuristic
+                TicTacToeGetTurn
+                TicTacToeGameOver
+                TicTacToeMoveGenerator
+                TicTacToeApplyMove
+                -10000
+                10000
+                game
+                game.GameTurn
 
         [<AbstractClass>]
         type Model() =
@@ -136,4 +146,6 @@
         type WithAlphaBetaPruning() =
             inherit Model()
             override this.ToString()         = "Pure F# with Alpha Beta Pruning";
-            override this.FindBestMove(game) = raise (System.NotImplementedException("FindBestMove"))
+            override this.FindBestMove(game) = 
+                let coords = fst(MiniMaxWithPruning game).Value
+                CreateMove (fst(coords)) (snd(coords))

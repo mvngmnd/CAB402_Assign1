@@ -2,7 +2,7 @@ namespace QUT
 
     module FSharpImpureTicTacToeModel =
 
-        type Player = Nothing | Nought | Cross
+        type Player = Empty | Nought | Cross
 
         type Move = 
             {
@@ -32,13 +32,12 @@ namespace QUT
             {Row = row; Col = col;}
 
         let ApplyMove game move = 
-            game.GameBoard.SetValue(move, move.Col + (move.Row * (game.GameSize)))
+            game.GameBoard.SetValue(game.GameTurn, move.Col + (move.Row * (game.GameSize)))
 
             game.GameTurn <- match game.GameTurn with
                              | Cross -> Nought
                              | Nought -> Cross
                              |_ -> game.GameTurn
-
             game
 
         let GameStart first size = 

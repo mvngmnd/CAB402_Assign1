@@ -26,6 +26,7 @@ namespace QUT.CSharpTicTacToe
         {
             throw new System.NotImplementedException("FindBestMove");
         }
+
         public List<List<Tuple<int,int>>> Lines (int size)
         {
             List<List<Tuple<int, int>>> lines = new List<List<Tuple<int, int>>>();
@@ -68,7 +69,7 @@ namespace QUT.CSharpTicTacToe
             return lines;
         }
 
-        public List<Player> LineAsPlayers(IEnumerable<System.Tuple<int, int>> line, Game game)
+        public List<Player> LineAsPlayers(IEnumerable<Tuple<int, int>> line, Game game)
         {
             List<Player> lineObj = new List<Player>();
             foreach (Tuple<int, int> coords in line)
@@ -78,7 +79,7 @@ namespace QUT.CSharpTicTacToe
             return lineObj;
         }
 
-        public TicTacToeOutcome<Player> LineOutcome(IEnumerable<System.Tuple<int,int>> line, Game game)
+        public TicTacToeOutcome<Player> LineOutcome(IEnumerable<Tuple<int,int>> line, Game game)
         {
             List<Player> listObj = LineAsPlayers(line, game);
             bool full = listObj.Count == game.Size;

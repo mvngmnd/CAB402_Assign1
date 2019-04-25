@@ -6,10 +6,21 @@ namespace QUT.CSharpTicTacToe
 {
     public class Game : ITicTacToeGame<Player>
     {
-
         public int Size { set; get; }
-        private readonly Player[] _board;
+        private Player[] _board;
         private Player _turn;
+
+        public Player[] Board
+        {
+            get
+            {
+                return _board;
+            }
+            set
+            {
+                _board = value;
+            }
+        }
 
         public Game(int size, Player firstTurn) {
             Size = size;
@@ -17,21 +28,11 @@ namespace QUT.CSharpTicTacToe
             _board = new Player[size * Size];
         }
 
-
         public Player Turn => _turn;
         public void ChangeTurn()
         {
-            switch (_turn)
-            {
-                case Player.Cross:
-                    _turn = Player.Nought;
-                    break;
-                case Player.Nought:
-                    _turn = Player.Cross;
-                    break;
-            }
+            _turn = (_turn == Player.Cross) ? Player.Nought : Player.Cross;
         }
-
 
         public Player GetLocation(int row, int col)
         {
@@ -54,7 +55,11 @@ namespace QUT.CSharpTicTacToe
         public void SetPiece(int row, int col)
         {
             _board[row * Size + col] = Turn;
-            ChangeTurn();
+        }
+
+        public void SetTurn(Player player)
+        {
+            _turn = player;
         }
     }
 }

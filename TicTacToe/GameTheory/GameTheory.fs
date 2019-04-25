@@ -10,13 +10,12 @@ namespace QUT
                 if (gameOver game) then
                     (None, heuristic game perspective)
                 else
-                    let bestScore = moveGenerator game
-                                    |> Seq.map (fun move -> snd(MiniMax (applyMove game move) perspective))
-                                    |> Seq.toList
-                                    |> (fun scores -> if getTurn game = perspective then List.max scores else List.min scores
-                                                      |> (fun best -> List.findIndex(fun n -> n = best) scores, best))
-
-                    (Some(Seq.item(fst(bestScore)) (moveGenerator game)), (snd(bestScore)))
+                    moveGenerator game
+                    |> Seq.map (fun move -> snd(MiniMax (applyMove game move) perspective))
+                    |> Seq.toList
+                    |> (fun scores -> if getTurn game = perspective then List.max scores else List.min scores
+                                      |> (fun best -> List.findIndex(fun n -> n = best) scores, best))
+                    |> (fun x -> (Some(Seq.item(fst(x)) (moveGenerator game)), (snd(x))))
 
             NodeCounter.Reset()
             MiniMax
@@ -32,52 +31,48 @@ namespace QUT
                     let v = MiniMax alpha beta headGame perspective
 
                     let newRow = row @ [(fst(head), v)]
-                    let new_a = max alpha (snd(v))
+                    let newAlpha = max alpha (snd(v))
 
-                    if (new_a >= beta || children.Length = 1) then
+                    if (newAlpha >= beta || children.Length = 1) then
                         if (children.Length = 1) then
                             if (row.IsEmpty) then
                                 (Some(fst(head)), snd(v))
                             else
-                            let ints = List.map (fun x -> snd(snd(x))) newRow
-                            let maxInt = List.max ints
-                            let index = List.findIndex (fun x -> snd(snd(x)) = maxInt) newRow
-                            let i = List.item index newRow
-                            (Some(fst(i)), maxInt)
+                                List.max (List.map (fun x -> snd(snd(x))) newRow)
+                                |> (fun maxValue -> List.findIndex (fun x -> snd(snd(x)) = maxValue) newRow)
+                                |> (fun index -> List.item index newRow)
+                                |> (fun maxMove -> (Some(fst(maxMove)), List.max (List.map (fun x -> snd(snd(x))) newRow)))
                         else
                             (Some(fst(head)), snd(v))
                     else
-                        takeMax (List.tail children) newRow new_a beta 
+                        takeMax (List.tail children) newRow newAlpha beta 
 
                 let rec takeMin children row alpha beta = 
-                    let head = List.head children
-                    let headGame = snd(head)
+                    let headMove = fst(List.head children)
+                    let headGame = snd(List.head children)
 
                     let v = MiniMax alpha beta headGame perspective
-                    let newRow = row @ [(fst(head), v)]
-                    let new_b = min beta (snd(v))
+                    let newRow = row @ [(headMove, v)]
+                    let newBeta = min beta (snd(v))
 
-                    if (new_b <= alpha || children.Length = 1) then
+                    if (newBeta <= alpha || children.Length = 1) then
                         if (children.Length = 1) then
                             if (row.IsEmpty) then
-                                (Some(fst(head)), snd(v))
+                                (Some(headMove), snd(v))
                             else
-
-                            let ints = List.map (fun x -> snd(snd(x))) newRow
-                            let minInt = List.min ints
-                            let index = List.findIndex (fun x -> snd(snd(x)) = minInt) newRow
-                            let i = List.item index newRow
-                            (Some(fst(i)), minInt)
+                                List.min (List.map (fun x -> snd(snd(x))) newRow)
+                                |> (fun minValue -> List.findIndex (fun x -> snd(snd(x)) = minValue) newRow)
+                                |> (fun index -> List.item index newRow)
+                                |> (fun minMove -> (Some(fst(minMove)), List.min (List.map (fun x -> snd(snd(x))) newRow)))
                         else
-                            (Some(fst(head)), snd(v))
+                            (Some(headMove), snd(v))
                     else
-                        takeMin (List.tail children) newRow alpha new_b 
+                        takeMin (List.tail children) newRow alpha newBeta 
 
                 if (gameOver oldState) then
                     (None, heuristic oldState perspective)
                 else
-                    let bestMove = 
-                        moveGenerator oldState
+                    moveGenerator oldState
                         |> Seq.map (fun move -> applyMove oldState move)
                         |> Seq.toList
                         |> List.zip (Seq.toList(moveGenerator oldState))
@@ -86,6 +81,6 @@ namespace QUT
                                     takeMax x List.Empty alpha beta
                                 else
                                     takeMin x List.Empty alpha beta)
-                    bestMove
+                        
             NodeCounter.Reset()
             MiniMax

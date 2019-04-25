@@ -35,7 +35,7 @@
                 Column = col
             }
 
-        let ApplyMove (oldState:GameState) (move: Move) = 
+        let ApplyMove oldState move = 
             let newBoard = oldState.GameBoard.Add((move.Row, move.Column), oldState.GameTurn)
             let newPlayer = 
                 match oldState.GameTurn with
@@ -49,7 +49,7 @@
             |> Seq.append (seq{yield seq {for x in 0 .. size-1 do yield (x,x)}})                         // Left diagonal
             |> Seq.append (seq{yield seq {for x in 0 .. size-1 do yield (x, size-1 - (x%size))}})        // Right diagonal     
 
-        let CheckLine (game:GameState) (line:seq<int*int>) : TicTacToeOutcome<Player> =
+        let CheckLine game line : TicTacToeOutcome<Player> =
             let countPlayer player = Seq.fold(fun n elem -> if elem = player then n+1 else n) 0          // Count quantity of player type
                                             (seq{for coords in line do                                   // Line as a sequence of players
                                                     if (game.GameBoard.ContainsKey(coords)) then 
@@ -64,7 +64,7 @@
             else
                 Undecided
 
-        let GameOutcome (game:GameState) : TicTacToeOutcome<Player> =
+        let GameOutcome game : TicTacToeOutcome<Player> =
             let gameOutcomes = Seq.map(fun line -> CheckLine game line) (Lines(game.GameSize))
 
             // If all line results are draw, then its a draw.
@@ -111,15 +111,15 @@
                  game
                  game.GameTurn
 
-        let MiniMaxWithPruning (game:GameState) = 
+        let MiniMaxWithPruning game = 
             GameTheory.MiniMaxWithAlphaBetaPruningGenerator
                 TicTacToeHeuristic
                 TicTacToeGetTurn
                 TicTacToeGameOver
                 TicTacToeMoveGenerator
                 TicTacToeApplyMove
-                -10000
-                10000
+                -1
+                1
                 game
                 game.GameTurn
 
@@ -139,13 +139,13 @@
             inherit Model()
             override this.ToString()         = "Pure F# with basic MiniMax";
             override this.FindBestMove(game) =
-                let coords = fst(MiniMax game).Value
-                CreateMove (fst(coords)) (snd(coords))
+                fst(MiniMax game).Value
+                |> (fun x -> CreateMove (fst(x)) (snd(x)))
                 
 
         type WithAlphaBetaPruning() =
             inherit Model()
             override this.ToString()         = "Pure F# with Alpha Beta Pruning";
             override this.FindBestMove(game) = 
-                let coords = fst(MiniMaxWithPruning game).Value
-                CreateMove (fst(coords)) (snd(coords))
+                fst(MiniMaxWithPruning game).Value
+                |> (fun x -> CreateMove (fst(x)) (snd(x)))

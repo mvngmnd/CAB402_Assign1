@@ -19,7 +19,7 @@ namespace QUT
             // Computer doesn't automatically start thinking about it's move when it's the computer's turn
             // so that we can examine the state of the system before the computer move starts
 
-            viewModel.StartNewGame(size, humanFirst);
+            //viewModel.StartNewGame(size, humanFirst);
 
             square1 = viewModel.FindSquare(0, 0);
             square2 = viewModel.FindSquare(0, 1);

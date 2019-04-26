@@ -10,6 +10,7 @@ namespace QUT.CSharpTicTacToe
         private Player[] _board;
         private Player _turn;
 
+        //I didnt want to have to make this public, but this is instead of the undomove.
         public Player[] Board
         {
             get
@@ -26,6 +27,13 @@ namespace QUT.CSharpTicTacToe
             Size = size;
             _turn = firstTurn;
             _board = new Player[size * Size];
+        }
+
+        public Game(int size, Player firstTurn, Player[] board)
+        {
+            Size = size;
+            _turn = firstTurn;
+            _board = board;
         }
 
         public Player Turn => _turn;

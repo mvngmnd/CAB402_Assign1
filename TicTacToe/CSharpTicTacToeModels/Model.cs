@@ -14,9 +14,10 @@ namespace QUT.CSharpTicTacToe
         }
         public Game ApplyMove(Game game, Move move)
         {
-            Game copy = new Game(game.Size, 0);
+            Game copy = new Game(game.Size, game.Turn);
+            // For some reason, I had to do it this way. It wouldnt let me just reference the board
+            // IE new Game(game.Size, game.Turn, game.board) would just copy the reference instead of value.
             game.Board.CopyTo(copy.Board, 0);
-            copy.SetTurn(game.Turn);
             copy.SetPiece(move.Row, move.Col);
             copy.ChangeTurn();
             return copy;
@@ -86,6 +87,8 @@ namespace QUT.CSharpTicTacToe
             lines.Add(line);
             return lines;
         }
+
+        //Convert the given line into a list of player types
         public List<Player> LineAsPlayers(List<Tuple<int,int>> line, Game game)
         {
             List<Player> lineObj = new List<Player>();
@@ -95,6 +98,8 @@ namespace QUT.CSharpTicTacToe
             }
             return lineObj;
         }
+
+        //Determine the outcome of a single line
         public TicTacToeOutcome<Player> LineOutcome(List<Tuple<int, int>> line, Game game)
         {
             List<Player> listObj = LineAsPlayers(line, game);
@@ -113,6 +118,8 @@ namespace QUT.CSharpTicTacToe
             }
             return TicTacToeOutcome<Player>.Undecided;
         }
+
+        //Determine the outcome of all lines
         public TicTacToeOutcome<Player> GameOutcome(Game game)
         {
             List<TicTacToeOutcome<Player>> boardOutcomes = new List<TicTacToeOutcome<Player>>();
@@ -133,10 +140,14 @@ namespace QUT.CSharpTicTacToe
 
             return boardOutcomes.Find((obj) => obj != TicTacToeOutcome<Player>.Draw && obj != TicTacToeOutcome<Player>.Undecided);
         }
+
+        //Start a game
         public Game GameStart(Player first, int size)
         {
             return new Game(size, first);
         }
+
+        //Generate all possible moves.
         public List<Move> MoveGenerator(Game game)
         {
             List<Move> moves = new List<Move>();
@@ -145,6 +156,7 @@ namespace QUT.CSharpTicTacToe
             {
                 for (int y = 0; y < game.Size; y++)
                 {
+                    //If the location is not one of our enums.
                     if (game.GetLocation(x, y) == 0)
                     {
                         moves.Add(new Move(x, y));
@@ -154,6 +166,8 @@ namespace QUT.CSharpTicTacToe
 
             return moves;
         }
+
+        //Find the best move possible for a given game state
         public Move FindBestMove(Game game)
         {
             int Alpha = -1;
@@ -162,35 +176,38 @@ namespace QUT.CSharpTicTacToe
 
             (Move, int) TakeMin(List<(Move, Game)> children, List<(Move, int)> row, int alpha, int beta)
             {
-                var head = children[0];
-                var tail = new List<(Move, Game)>(children.Skip(1));
+                (Move, Game) head = children.First();
+                List<(Move, Game)> tail = new List<(Move, Game)>(children.Skip(1));
 
-                var headMove = head.Item1;
-                var headGame = head.Item2;
+                Move headMove = head.Item1;
+                Game headGame = head.Item2;
 
-                var node = AlphaBeta(headGame, alpha, beta);
-                var nodeHeuristic = node.Item2;
+                (Move, int) node = AlphaBeta(headGame, alpha, beta);
+                int nodeHeuristic = node.Item2;
+                int newBeta = Math.Min(beta, nodeHeuristic);
 
+                //Add the node to our row list. This is used to keep track of nodes we've traversed
+                //in case we hit the end of a group of children without finding a good node.
                 row.Add((headMove, nodeHeuristic));
-                var newBeta = Math.Min(beta, nodeHeuristic);
 
                 if (newBeta <= alpha)
                 {
                     return (headMove, nodeHeuristic);
                 }
+
+                //If we've hit the end without finding a good node.
                 if (children.Count == 1)
                 {
-                    if (row.Count == 0)
+                    if (row.Count > 0)
                     {
-                        return (headMove, nodeHeuristic);
-                    }
-                    else
-                    {
+                        //Go find the minimum move of what we've visited.
                         List<int> listOfHeuristics = row.Select(x => x.Item2).ToList();
                         int minHeuristic = listOfHeuristics.Min();
                         int index = listOfHeuristics.FindIndex(x => x == minHeuristic);
                         return row[index];
+
                     }
+                    return (headMove, nodeHeuristic);
                 }
 
                 return TakeMin(tail, row, alpha, newBeta);
@@ -198,7 +215,7 @@ namespace QUT.CSharpTicTacToe
 
             (Move, int) TakeMax(List<(Move, Game)> children, List<(Move, int)> row, int alpha, int beta)
             {
-                (Move,Game) head = children[0];
+                (Move,Game) head = children.First();
                 List<(Move,Game)> tail = new List<(Move, Game)>(children.Skip(1));
 
                 Move headMove = head.Item1;
@@ -206,33 +223,35 @@ namespace QUT.CSharpTicTacToe
 
                 (Move,int) node = AlphaBeta(headGame, alpha, beta);
                 int nodeHeuristic = node.Item2;
-                row.Add((headMove, nodeHeuristic));
                 int newAlpha = Math.Max(alpha, nodeHeuristic);
 
+                //Add the node to our row list. This is used to keep track of nodes we've traversed
+                //in case we hit the end of a group of children without finding a good node.
+                row.Add((headMove, nodeHeuristic));
+
                 if (newAlpha >= beta)
-                {
-                        return (headMove, nodeHeuristic);
+                {   
+                    return (headMove, nodeHeuristic);
                 }
+
+                //If we've hit the end without finding a good node.
                 if (children.Count == 1)
-                {
-                    if (row.Count == 0)
+                {   
+                    if (row.Count > 0)
                     {
-                        return (headMove, nodeHeuristic);
-                    }
-                    else
-                    {
+                        //Go find the maximum move of what we've visited.
                         List<int> listOfHeuristics = row.Select(x => x.Item2).ToList();
                         int maxHeuristic = listOfHeuristics.Max();
                         int index = listOfHeuristics.FindIndex(x => x == maxHeuristic);
                         return row[index];
+
                     }
+                    return (headMove, nodeHeuristic);
                 }
-                else
-                {
-                    return TakeMax(tail, row, newAlpha, beta);
-                }
+                return TakeMax(tail, row, newAlpha, beta);
             }
 
+            //Implementation of AlphaBeta MiniMax.
             (Move, int) AlphaBeta(Game node, int alpha, int beta)
             {
                 NodeCounter.Increment();
@@ -242,17 +261,17 @@ namespace QUT.CSharpTicTacToe
                 }
 
                 List<Move> moves = MoveGenerator(node);
-
                 List<Game> appliedMoves = moves.Select(x => ApplyMove(node, x)).ToList();
 
-                List<(Move, Game)> children = moves.Zip(appliedMoves, (move, appliedMove) => (move, appliedMove)).ToList();
+                //Zip the two lists together so that we can track which move results in what gamestate
+                List<(Move, Game)> childrenNodes = moves.Zip(appliedMoves, (move, appliedMove) => (move, appliedMove)).ToList();
 
                 if (perspective == GetTurn(node))
                 {
-                    return (TakeMax(children, new List<(Move, int)>(), alpha, beta));
+                    return (TakeMax(childrenNodes, new List<(Move, int)>(), alpha, beta));
                 }
 
-                return (TakeMin(children, new List<(Move, int)>(), alpha, beta));
+                return (TakeMin(childrenNodes, new List<(Move, int)>(), alpha, beta));
             }
 
             NodeCounter.Reset();
